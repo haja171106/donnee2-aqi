@@ -1,0 +1,73 @@
+name: ETL horaire AQI
+
+on:
+  schedule:
+    # Toutes les heures, à la minute 5 (décalé pour éviter la ruée de minute 0
+    # sur l'infra GitHub, source classique de runs retardés/annulés)
+    - cron: "5 * * * *"
+  workflow_dispatch: {}  # déclenchement manuel possible depuis l'onglet Actions
+
+# Un seul run à la fois : si un run précédent traîne encore, on ne veut pas
+# que deux processus écrivent dans data/ et poussent des commits en parallèle.
+concurrency:
+  group: aqi-pipeline
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Installation de Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Installation des dépendances
+        run: pip install -r requirements.txt
+
+      - name: Extraction (mode horaire)
+        env:
+          OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m src.extract --mode hourly
+
+      - name: Transformation (reconstruction de clean/)
+        env:
+          OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m src.transform
+
+      - name: Validation du contrat de données
+        env:
+          OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m scripts.validate_clean
+
+      - name: Chargement du warehouse
+        env:
+          OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m src.load
+
+      - name: Commit et push des données mises à jour
+        run: |
+          git config user.name "aqi-pipeline-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/raw data/clean
+          if git diff --cached --quiet; then
+            echo "Rien de nouveau à committer."
+          else
+            git commit -m "chore(data): run horaire $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            git push
+          fi
