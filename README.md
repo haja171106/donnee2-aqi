@@ -86,15 +86,12 @@ python -m src.load                                  # synchronisation du warehou
 
 ## Période couverte et trous connus
 
-*À compléter par le groupe une fois le backfill réel effectué et le pipeline lancé en continu :*
-- Période couverte : `[date de début]` → aujourd'hui, mise à jour horaire.
-- Trous connus : lister ici les éventuelles pannes de l'API, plages sans données historiques disponibles pour certaines villes, ou interruptions du pipeline, en les rapprochant du ratio lignes de faits / (villes × heures théoriques).
+Voir `data/coherence_report.md`, généré et mis à jour par `scripts/check_coherence.py` : période couverte, taux de couverture par ville et causes identifiées des trous.
 
 ## Accès au warehouse
 
-- Base : Postgres managé (Supabase ou Neon, plan gratuit).
+- Base : Neon.
 - Connexion via la variable d'environnement `DATABASE_URL`.
-- *À compléter : hôte, nom de la base, et procédure de création d'un accès en lecture seule pour la consommation par le cours IA1.*
 
 ## Structure du dépôt
 
