@@ -34,10 +34,12 @@ Un script de validation (`scripts/validate_clean.py`) s'intercale entre la trans
 
 L'exécution automatique est assurée par GitHub Actions plutôt que par un service externe à héberger :
 
-- `.github/workflows/etl.yml` se déclenche chaque heure (`cron: 0 * * * *`) et enchaîne extraction → transformation → validation → chargement → commit des données mises à jour dans le dépôt.
+- `.github/workflows/etl.yml` se déclenche chaque heure et enchaîne extraction → transformation → validation → chargement → commit des données mises à jour dans le dépôt.
 - `.github/workflows/backfill.yml` se déclenche manuellement, avec le nombre de mois d'historique à récupérer en paramètre.
 
 Comme les runners GitHub Actions sont éphémères, les fichiers `data/raw/` et `data/clean/` sont recommittés dans le dépôt à chaque run : c'est à la fois le mécanisme de persistance entre deux exécutions et la preuve, visible dans l'onglet Actions, que le pipeline tourne réellement heure après heure, y compris à des horaires où personne n'est devant l'écran.
+
+**Déclenchement horaire : GitHub Actions `schedule:` + cron-job.org en complément.** Le déclencheur `schedule:` natif de GitHub Actions s'est avéré peu fiable en pratique lors des premiers jours de collecte : GitHub le documente lui-même comme du "best-effort", avec des retards observés allant de 1h15 à plus de 4h sous forte charge sur son infrastructure partagée, au lieu d'un déclenchement à l'heure pile. Pour corriger ça sans changer d'orchestrateur, un second déclencheur a été ajouté en parallèle : [cron-job.org](https://cron-job.org), un service de cron externe gratuit, appelle l'API GitHub (`POST /repos/.../dispatches`) précisément à la minute 0 de chaque heure, ce qui réveille le workflow via l'événement `repository_dispatch`. Le `schedule:` interne reste actif en garde-fou (inoffensif grâce à l'idempotence du pipeline : rejouer un run ne duplique jamais de données), mais c'est désormais `repository_dispatch` qui déclenche l'écrasante majorité des runs à l'heure exacte. Les étapes réseau du workflow (installation des dépendances, appel à l'API OpenWeather) retentent aussi automatiquement jusqu'à 3 fois en cas d'échec transitoire, pour réduire les runs marqués "failed" à tort. Le titre affiché dans l'onglet Actions (`run-name`) indique explicitement quel mécanisme a déclenché chaque run (`repository_dispatch`, `schedule` ou `workflow_dispatch`), ce qui permet de vérifier d'un coup d'œil que la collecte est bien automatique.
 
 La clé API OpenWeather et l'URL de connexion à la base de données ne figurent jamais dans le code : elles sont lues depuis des variables d'environnement (`config.py`), fournies localement par un fichier `.env` non versionné, et par les secrets GitHub Actions (`OPENWEATHER_API_KEY`, `DATABASE_URL`) en production.
 
@@ -113,6 +115,5 @@ Voir `data/coherence_report.md`, généré et mis à jour par `scripts/check_coh
 ├── .github/workflows/
 │   ├── etl.yml                  # cron horaire : extract → transform → validate → load → commit
 │   └── backfill.yml             # déclenchement manuel du backfill
-├── notebooks/                    # analyses exploratoires éventuelles
 └── requirements.txt
 ```
