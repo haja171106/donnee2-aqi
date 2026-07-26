@@ -2,9 +2,16 @@ name: ETL horaire AQI
 
 on:
   schedule:
-    # Toutes les heures, à la minute 5 (décalé pour éviter la ruée de minute 0
-    # sur l'infra GitHub, source classique de runs retardés/annulés)
+    # Conservé en garde-fou : peu fiable seul (GitHub documente ce trigger
+    # comme "best-effort", avec des retards possibles sous forte charge),
+    # mais inoffensif en complément du déclenchement externe ci-dessous
+    # grâce à l'idempotence du pipeline (rejouer un run ne duplique rien).
     - cron: "5 * * * *"
+  repository_dispatch:
+    # Déclenchement précis : un cron externe (cron-job.org) appelle l'API
+    # GitHub toutes les heures pile avec ce type d'événement. Voir
+    # ARCHITECTURE.md pour la configuration du cron externe.
+    types: [run-etl]
   workflow_dispatch: {}  # déclenchement manuel possible depuis l'onglet Actions
 
 # Un seul run à la fois : si un run précédent traîne encore, on ne veut pas
@@ -19,7 +26,7 @@ permissions:
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout du dépôt
@@ -34,13 +41,23 @@ jobs:
           cache: "pip"
 
       - name: Installation des dépendances
-        run: pip install -r requirements.txt
+        run: |
+          for i in 1 2 3; do
+            pip install -r requirements.txt && break
+            echo "Tentative $i échouée, nouvel essai dans 10s..."
+            sleep 10
+          done
 
       - name: Extraction (mode horaire)
         env:
           OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python -m src.extract --mode hourly
+        run: |
+          for i in 1 2 3; do
+            python -m src.extract --mode hourly && break
+            echo "Tentative $i échouée (API OpenWeather), nouvel essai dans 15s..."
+            sleep 15
+          done
 
       - name: Transformation (reconstruction de clean/)
         env:
