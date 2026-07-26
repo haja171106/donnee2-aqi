@@ -1,21 +1,14 @@
-name: ETL horaire AQI
+name: AQI hourly ETL
+
+run-name: "Automated hourly collection — run #${{ github.run_number }} (${{ github.event_name }})"
 
 on:
   schedule:
-    # Conservé en garde-fou : peu fiable seul (GitHub documente ce trigger
-    # comme "best-effort", avec des retards possibles sous forte charge),
-    # mais inoffensif en complément du déclenchement externe ci-dessous
-    # grâce à l'idempotence du pipeline (rejouer un run ne duplique rien).
     - cron: "5 * * * *"
   repository_dispatch:
-    # Déclenchement précis : un cron externe (cron-job.org) appelle l'API
-    # GitHub toutes les heures pile avec ce type d'événement. Voir
-    # ARCHITECTURE.md pour la configuration du cron externe.
-    types: [run-etl]
-  workflow_dispatch: {}  # déclenchement manuel possible depuis l'onglet Actions
+    types: [scheduled-hourly-collection]
+  workflow_dispatch: {}  
 
-# Un seul run à la fois : si un run précédent traîne encore, on ne veut pas
-# que deux processus écrivent dans data/ et poussent des commits en parallèle.
 concurrency:
   group: aqi-pipeline
   cancel-in-progress: false
@@ -29,62 +22,62 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - name: Checkout du dépôt
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Installation de Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Installation des dépendances
+      - name: Install dependencies
         run: |
           for i in 1 2 3; do
             pip install -r requirements.txt && break
-            echo "Tentative $i échouée, nouvel essai dans 10s..."
+            echo "Attempt $i failed, retrying in 10s..."
             sleep 10
           done
 
-      - name: Extraction (mode horaire)
+      - name: Extract (hourly mode)
         env:
           OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           for i in 1 2 3; do
             python -m src.extract --mode hourly && break
-            echo "Tentative $i échouée (API OpenWeather), nouvel essai dans 15s..."
+            echo "Attempt $i failed (OpenWeather API), retrying in 15s..."
             sleep 15
           done
 
-      - name: Transformation (reconstruction de clean/)
+      - name: Transform (rebuild clean/)
         env:
           OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m src.transform
 
-      - name: Validation du contrat de données
+      - name: Validate data contract
         env:
           OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m scripts.validate_clean
 
-      - name: Chargement du warehouse
+      - name: Load warehouse
         env:
           OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m src.load
 
-      - name: Commit et push des données mises à jour
+      - name: Commit and push updated data
         run: |
           git config user.name "aqi-pipeline-bot"
           git config user.email "actions@users.noreply.github.com"
           git add data/raw data/clean
           if git diff --cached --quiet; then
-            echo "Rien de nouveau à committer."
+            echo "Nothing new to commit."
           else
-            git commit -m "chore(data): run horaire $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            git commit -m "chore(data): hourly run $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
             git push
           fi
