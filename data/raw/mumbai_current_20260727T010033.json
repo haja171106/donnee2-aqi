@@ -1,0 +1,1 @@
+{"coord": {"lon": 72.8777, "lat": 19.076}, "list": [{"main": {"aqi": 1}, "components": {"co": 63.18, "no": 0, "no2": 0.06, "o3": 45.2, "so2": 0.15, "pm2_5": 5.67, "pm10": 11.69, "nh3": 0}, "dt": 1785114033}], "_city_meta": {"name": "Mumbai", "country": "IN", "lat": 19.076, "lon": 72.8777}}
