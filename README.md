@@ -95,6 +95,16 @@ Voir `data/coherence_report.md`, généré et mis à jour par `scripts/check_coh
 - Base : Neon.
 - Connexion via la variable d'environnement `DATABASE_URL`.
 
+## Documentation interactive (Notebooks)
+Le dossier `notebooks/` contient des carnets Jupyter (Google colab) qui documentent et expliquent pas à pas la logique de chaque script Python du projet. 
+- `extract.ipynb`: documente l'interrogation de l'API OpenWeather, le respect du rate limit, et la génération des fichiers JSON bruts immuables.
+- `transform.ipynb` : illustre la reconstruction totale, le nettoyage, et la déduplication des données de la zone brute vers la zone propre.
+- `validate_clean.ipynb` : explicite les règles strictes du contrat de données appliquées avant tout chargement.
+- `load.ipynb` : détaille la synchronisation idempotente (`INSERT ... ON CONFLICT`) dans le schéma en étoile du warehouse PostgreSQL. 
+- `check_coherence.ipynb` : détaille l'audit d'intégrité de la base de données et la génération automatique du rapport de couverture.
+
+Conformément aux bonnes pratiques de sécurité, ces notebooks sont conçus pour être consultés en mode "Dry Run" : ils ne nécessitent ni clé API ni mot de passe de base de données pour être lus, garantissant ainsi l'absence totale de secrets dans le code source partagé ou l'historique d'exécution. L'exécution réelle se fait exclusivement via les scripts .py dans l'environnement orchestré.
+
 ## Structure du dépôt
 
 ```
@@ -107,6 +117,12 @@ Voir `data/coherence_report.md`, généré et mis à jour par `scripts/check_coh
 │   └── load.py                  # chargement idempotent dans le warehouse
 ├── scripts/
 │   └── validate_clean.py        # contrôle du contrat de données
+├── notebooks/                     
+│   └── extract.ipynb            # explication interactive du module Extract
+│   └── transform.ipynb          # explication interactive du module Transform
+│   └── validate_clean.ipynb     # explication interactive du module Validate
+│   └── load.ipynb               # explication interactive du module Load
+│   └── check_coherence.ipynb    # explication interactive du module Coherence
 ├── sql/
 │   └── schema.sql                # dim_ville, dim_temps, fact_qualite_air
 ├── data/
