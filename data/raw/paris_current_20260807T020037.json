@@ -1,0 +1,1 @@
+{"coord": {"lon": 2.3522, "lat": 48.8566}, "list": [{"main": {"aqi": 2}, "components": {"co": 98.08, "no": 0, "no2": 1.9, "o3": 79.56, "so2": 1.01, "pm2_5": 1.64, "pm10": 3.62, "nh3": 4.95}, "dt": 1786068036}], "_city_meta": {"name": "Paris", "country": "FR", "lat": 48.8566, "lon": 2.3522}}
