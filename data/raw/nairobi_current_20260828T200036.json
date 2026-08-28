@@ -1,0 +1,1 @@
+{"coord": {"lon": 36.8219, "lat": -1.2921}, "list": [{"main": {"aqi": 2}, "components": {"co": 116.25, "no": 0, "no2": 0.51, "o3": 71.74, "so2": 0.13, "pm2_5": 2.46, "pm10": 3.52, "nh3": 0.49}, "dt": 1787947236}], "_city_meta": {"name": "Nairobi", "country": "KE", "lat": -1.2921, "lon": 36.8219}}
