@@ -1,0 +1,1 @@
+{"coord": {"lon": 116.4074, "lat": 39.9042}, "list": [{"main": {"aqi": 2}, "components": {"co": 175, "no": 1.07, "no2": 6.08, "o3": 78.01, "so2": 7, "pm2_5": 1.49, "pm10": 4.45, "nh3": 4.75}, "dt": 1791075675}], "_city_meta": {"name": "Beijing", "country": "CN", "lat": 39.9042, "lon": 116.4074}}
