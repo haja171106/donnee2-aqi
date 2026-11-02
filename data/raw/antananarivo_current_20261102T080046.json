@@ -1,0 +1,1 @@
+{"coord": {"lon": 47.5079, "lat": -18.8792}, "list": [{"main": {"aqi": 1}, "components": {"co": 99.76, "no": 0.03, "no2": 0.11, "o3": 58.13, "so2": 0.28, "pm2_5": 2.77, "pm10": 5.43, "nh3": 1.22}, "dt": 1793606446}], "_city_meta": {"name": "Antananarivo", "country": "MG", "lat": -18.8792, "lon": 47.5079}}
